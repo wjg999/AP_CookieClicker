@@ -14,7 +14,7 @@ from .Rules import set_rules
 class CookieClicker(World):
     game = "Cookie Clicker"
     worldversion = "0.8.0a3"
-    location_name_to_id = locations["name_to_id"]
+    location_name_to_id = { f"{location.name}": location.id for location in locations["valid"] }
     options_dataclass = CCOptions
     options: CCOptions
     item_name_to_id = { name: data.code for name, data in item_table.items() }
@@ -38,8 +38,6 @@ class CookieClicker(World):
         event_location = CCLocation(self.player, "Victory location", 42000000, achievement_region)
         event_location.place_locked_item(CCItem("Victory", ItemClassification.progression, 42000000, self.player))
         achievement_region.locations.append(event_location)
-        self.location_name_to_id["Victory location"] = 42000000
-        self.item_name_to_id["Victory"] = 42000000
 
     def create_item(self, name: str) -> CCItem:
         item_data = item_table.get(name)
