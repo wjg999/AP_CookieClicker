@@ -7,14 +7,14 @@ from worlds.generic.Rules import add_rule
 from Options import PerGameCommonOptions
 from .Items import CCItem, traps, item_table, upgrades, structures, can_become_progressive, cookie_multiplier, \
     cookie_multiplier_weights, progressive_structures
-from .Locations import CCLocation, location_table
+from .Locations import CCLocation, locations, SPHERE
 from .Options import CCOptions
 from .Rules import set_rules
 
 class CookieClicker(World):
     game = "Cookie Clicker"
-    worldversion = "0.7.0"
-    location_name_to_id = location_table
+    worldversion = "0.8.0a3"
+    location_name_to_id = locations["name_to_id"]
     options_dataclass = CCOptions
     options: CCOptions
     item_name_to_id = { name: data.code for name, data in item_table.items() }
@@ -29,8 +29,8 @@ class CookieClicker(World):
 
         achievement_region = Region("Achievements Region", self.player, self.multiworld)
         self.multiworld.regions.append(achievement_region)
-        for location in location_table:
-            achievement_region.add_locations({ f"{location}":self.location_name_to_id[location]}, CCLocation)
+        for location in locations["valid"]:
+            achievement_region.add_locations({ f"{location.name}":location.id}, CCLocation)
         # Just one region for now, but we should add more later for sanity checks
         region.connect(achievement_region, "Achievements")
 
@@ -38,6 +38,8 @@ class CookieClicker(World):
         event_location = CCLocation(self.player, "Victory location", 42000000, achievement_region)
         event_location.place_locked_item(CCItem("Victory", ItemClassification.progression, 42000000, self.player))
         achievement_region.locations.append(event_location)
+        self.location_name_to_id["Victory location"] = 42000000
+        self.item_name_to_id["Victory"] = 42000000
 
     def create_item(self, name: str) -> CCItem:
         item_data = item_table.get(name)
