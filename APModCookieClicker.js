@@ -384,7 +384,7 @@ CCStyleOverrides.textContent = `
   .product { display: block !important }
   .product.toggledOff { opacity: 0.6 } /* Ugly magic number from CC code */ 
   .product[data-aphide="1"] { display: none !important; }
-  #notes.split { left: calc(50% - 142px) }
+  #notes:has(+ #apNotes.split) { left: calc(50% - 142px) }
   #notes.split>.sidenote { right: unset; left: -40px; }
   #apNotes { display: none }
   #apNotes.split { 
@@ -486,7 +486,7 @@ class APNotes {
       Game.apNoteId++;
       Game.APNotesById[this.id] = this;
       Game.APNotes.unshift(this);
-      if (Game.APNotes.length > 50) Game.APNotes.pop();
+      if (Game.APNotes.length > 100) Game.APNotes.pop();
       //Game.APNotes.push(this);
       //if (Game.APNotes.length>50) Game.APNotes.shift();
       Game.UpdateAPNotes();
@@ -621,6 +621,19 @@ function toast(message, {receiving, item, type} = {}) {
         id = item.item - OFFSET.ITEMS.BUILDINGS;
         name = Game.ObjectsById[id].name;
         icon = [Game.ObjectsById[id].iconColumn, 27];
+      } else if (OFFSET.ITEMS.isProgressive(item.item)) {
+        const receivedCount = Object.groupBy(receivedItems, x => x)[item.item]?.length || 0;
+        const current= [
+          "Heavenly chip secret",
+          "Heavenly cookie stand",
+          "Heavenly bakery",
+          "Heavenly confectionery",
+          "Heavenly key"
+        ][receivedCount];
+        const upgrade = Game.Upgrades[current];
+        id = upgrade?.id;
+        name = window.client.package.lookupItemName(gameName, item.item);
+        icon = upgrade?.icon;
       } else if (OFFSET.ITEMS.isUpgrade(item.item)) {
         const upgrade = Game.UpgradesById[item.item - OFFSET.ITEMS.UPGRADES - 1];
         id = upgrade.id;
@@ -684,10 +697,12 @@ const OFFSET = {
   ITEMS: {
     BUILDINGS: 10000000,
     UPGRADES: 20000000,
+    PROGRESSIVE: 21000000,
     FILLERS: 50000000,
     TRAPS: 60000000,
     isBuilding: id => Math.floor(id / 10000000) * 10000000 === OFFSET.ITEMS.BUILDINGS,
     isUpgrade: id => Math.floor(id / 10000000) * 10000000 === OFFSET.ITEMS.UPGRADES,
+    isProgressive: id => Math.floor(id / 1000000) * 1000000 === OFFSET.ITEMS.PROGRESSIVE,
     isFiller: id => Math.floor(id / 10000000) * 10000000 === OFFSET.ITEMS.FILLERS,
     isTrap: id => Math.floor(id / 10000000) * 10000000 === OFFSET.ITEMS.TRAPS,
   },
@@ -880,7 +895,21 @@ function receiveItem(itemId, firstTime) {
   }
 
   if (OFFSET.ITEMS.isUpgrade(itemId)) {
-    receiveUpgrade();
+    if (OFFSET.ITEMS.isProgressive(itemId)) {
+      const receivedCount = Object.groupBy(receivedItems, x => x)[itemId]?.length || 0;
+      switch (itemId) {
+        case OFFSET.ITEMS.PROGRESSIVE + 0 : // Heavenly upgrades
+              [
+                "Heavenly chip secret",
+                "Heavenly cookie stand",
+                "Heavenly bakery",
+                "Heavenly confectionery",
+                "Heavenly key"
+              ].slice(0, receivedCount).forEach(up => receiveUpgrade(Game.Upgrades[up]));
+      }
+    } else {
+      receiveUpgrade();
+    }
   }
   if (OFFSET.ITEMS.isTrap(itemId) && firstTime) {
     const buildings = Game.ObjectsById.filter(a => a.amount);
@@ -1250,7 +1279,15 @@ async function appendFunctions() {
   // Must stay after Game.Unlock override to prevent re-unlock happening during init
   Object.values(window.client.package.findPackage(gameName).itemTable)
     .forEach(apId => {
-      if (OFFSET.ITEMS.isUpgrade(apId)) Game.UpgradesById[apId - OFFSET.ITEMS.UPGRADES - 1].unlocked = 0;
+      if (OFFSET.ITEMS.isUpgrade(apId) && !OFFSET.ITEMS.isProgressive(apId)) Game.UpgradesById[apId - OFFSET.ITEMS.UPGRADES - 1].unlocked = 0;
     });
+  // Manually lock upgrades that are progressive (ie not in the pool). Ugly code but hopefully we don't add more
+  [
+    "Heavenly chip secret",
+    "Heavenly cookie stand",
+    "Heavenly bakery",
+    "Heavenly confectionery",
+    "Heavenly key"
+  ].forEach(up => Game.Upgrades[up].unlocked = 0);
   Game.RebuildUpgrades();
 }

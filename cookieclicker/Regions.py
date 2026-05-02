@@ -30,6 +30,6 @@ def create_regions(world: "CookieClicker "):
             region.locations.append(event_location)
 
         if sphere == SPHERE.GRANDMA:
-            menu.connect(menu, rule=RULES[sphere])
+            menu.connect(region, rule=RULES[sphere])
         else:
             previous.connect(region, rule=RULES[sphere])

@@ -14,6 +14,7 @@ class CCItem(Item):
 class OFFSET():
     BUILDINGS = 10000000
     UPGRADES = 20000000
+    PROGRESSIVE = 21000000
     FILLERS = 50000000
     TRAPS = 60000000
 
@@ -395,11 +396,12 @@ upgrades = [
     ItemData(OFFSET.UPGRADES + 53, "Lucky day", ItemClassification.useful),
     ItemData(OFFSET.UPGRADES + 54, "Serendipity", ItemClassification.useful),
     ItemData(OFFSET.UPGRADES + 87, "Get lucky", ItemClassification.useful),
-    ItemData(OFFSET.UPGRADES + 130, "Heavenly chip secret", ItemClassification.useful),
-    ItemData(OFFSET.UPGRADES + 131, "Heavenly cookie stand", ItemClassification.useful),
-    ItemData(OFFSET.UPGRADES + 132, "Heavenly bakery", ItemClassification.useful),
-    ItemData(OFFSET.UPGRADES + 133, "Heavenly confectionery", ItemClassification.useful),
-    ItemData(OFFSET.UPGRADES + 134, "Heavenly key", ItemClassification.useful),
+    # Heavenly items are progressive
+    # ItemData(OFFSET.UPGRADES + 130, "Heavenly chip secret", ItemClassification.useful),
+    # ItemData(OFFSET.UPGRADES + 131, "Heavenly cookie stand", ItemClassification.useful),
+    # ItemData(OFFSET.UPGRADES + 132, "Heavenly bakery", ItemClassification.useful),
+    # ItemData(OFFSET.UPGRADES + 133, "Heavenly confectionery", ItemClassification.useful),
+    # ItemData(OFFSET.UPGRADES + 134, "Heavenly key", ItemClassification.useful),
     ItemData(OFFSET.UPGRADES + 153, "A festive hat", ItemClassification.progression),
     ItemData(OFFSET.UPGRADES + 154, "Increased merriness", ItemClassification.useful),
     ItemData(OFFSET.UPGRADES + 155, "Improved jolliness", ItemClassification.useful),
@@ -604,12 +606,15 @@ progressive_structures = [
     ItemData(OFFSET.BUILDINGS + 19, "Progressive You", ItemClassification.progression)
 ]
 
+progressive_heavens = ItemData(OFFSET.PROGRESSIVE + 0, "Heavenly progress", ItemClassification.progression)
+
 item_list = []
 item_list += upgrades
 item_list += can_become_progressive
 item_list += cookie_multiplier
 item_list += traps
 item_list += structures
+item_list += [progressive_heavens]
 
 items_by_id = {item.code: item for item in item_list}
 

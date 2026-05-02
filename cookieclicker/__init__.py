@@ -3,7 +3,7 @@ from dataclasses import asdict
 from BaseClasses import Item
 from worlds.AutoWorld import World
 from .Items import CCItem, traps, item_table, upgrades, structures, can_become_progressive, cookie_multiplier, \
-    cookie_multiplier_weights, progressive_structures
+    cookie_multiplier_weights, progressive_structures, progressive_heavens
 from .Locations import CCLocation, locations, SPHERE
 from .Options import CCOptions
 from .Rules import set_rules
@@ -57,6 +57,11 @@ class CookieClicker(World):
                 self.multiworld.itempool.append(self.create_item(item.item_name))
 
             placed_structures = len(structures) + len(can_become_progressive)
+
+        # Very ugly code
+        placed_structures += 5
+        for _ in range(5):
+            self.multiworld.itempool.append(self.create_item(progressive_heavens.item_name))
 
         total_locations = len(self.multiworld.get_unfilled_locations(self.player))
         placed_items_count = len(upgrades) + placed_structures
