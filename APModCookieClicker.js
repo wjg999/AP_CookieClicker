@@ -385,7 +385,7 @@ CCStyleOverrides.textContent = `
   .product.toggledOff { opacity: 0.6 } /* Ugly magic number from CC code */ 
   .product[data-aphide="1"] { display: none !important; }
   #notes:has(+ #apNotes.split) { left: calc(50% - 142px) }
-  #notes.split>.sidenote { right: unset; left: -40px; }
+  #notes:has(+ #apNotes.split)>.sidenote { right: unset; left: -40px; }
   #apNotes { display: none }
   #apNotes.split { 
     display: unset;
