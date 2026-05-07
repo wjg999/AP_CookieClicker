@@ -41,12 +41,11 @@ class CookieClicker(World):
         if self.options.enable_progressive_buildings.value:
             # We skipp all the others and use progressive structures instead
             for structure_unlock in progressive_structures:
-                progressive_item = self.create_item(structure_unlock.item_name)
 
                 # ugly 3x lines because only for synergy for now
-                self.multiworld.itempool.append(progressive_item)
-                self.multiworld.itempool.append(progressive_item)
-                self.multiworld.itempool.append(progressive_item)
+                for _ in range(3):
+                    progressive_item = self.create_item(structure_unlock.item_name)
+                    self.multiworld.itempool.append(progressive_item)
                 placed_structures += 3
 
         else:
