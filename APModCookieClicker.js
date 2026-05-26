@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         AP_CookieClicker
-// @namespace    http://tampermonkey.net/
 // @version      2026-05-06
-// @description  Archipelago
-// @author       SX
+// @description  Archipelago client for Cookie Clicker
+// @author       SX, Charlignon
+// @homepageURL  https://github.com/Charlignon/AP_CookieClicker
 // @match        https://orteil.dashnet.org/cookieclicker/
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=dashnet.org
-// @require
 // @grant        none
 // @top-level-await
 // ==/UserScript==
@@ -55,6 +54,16 @@ Game.APReset = () => {
   Game.HardReset(2);
   receivedItems = [];
   localStorage.setItem('receivedItems', "[]")
+}
+
+// To override
+Game.__APResendChecks = () => {
+  console.log("=== DEBUG: RESEND ALL CHECKS (please override this function) ===");
+  alert("Please connect to an archipelago game.");
+}
+Game.__APGoalVerify = () => {
+  console.log("=== DEBUG: VERIFY GOAL (please override this function) ===");
+  alert("Please connect to an archipelago game.");
 }
 
 // Input fields
@@ -157,7 +166,9 @@ settingsPanel.innerHTML = `
     <label><input type="checkbox" name="hideOtherItems" ${apClientSettings.hideOtherItems ? "checked" : ""} />Hide checks for other games</label>
   </fieldset>
   <br/>
-  <button onclick="if(confirm('This will reset your CC save and received AP items. Continue?')===true) {Game.APReset()}">RESET SAVE</button>
+  <button onclick="Game.__APGoalVerify()">GOAL VERIFY</button>
+  <button onclick="if(confirm('This will force resend ALL your checks to the server. Continue?')===true) {Game.__APResendChecks()}">RESEND CHECKS</button>
+  <button class="apDanger" onclick="if(confirm('This will reset your CC save and received AP items. Continue?')===true) {Game.APReset()}">RESET SAVE</button>
 </details>
 `
 const settingsStyle = `
@@ -168,6 +179,9 @@ const settingsStyle = `
     & summary {
       margin-bottom: 10px;
     }
+  }
+  .apDanger {
+    background-color: lightcoral;
   }
 `;
 
@@ -737,7 +751,7 @@ function receiveItem(itemId, firstTime) {
   function receiveUpgrade(upgrade) {
     let u = upgrade || Game.UpgradesById[itemId - OFFSET.ITEMS.UPGRADES - 1];
     u.basePrice = -1;
-    if (u.buy() !== 1) {
+    if (u.buy?.() !== 1) {
       // If there is no buy function, set it to bought manually
       u.bought = 1;
     }
@@ -782,9 +796,13 @@ function receiveItem(itemId, firstTime) {
     const receivedCount = Object.groupBy(receivedItems, x => x)[itemId]?.length || 0;
     switch (itemId) {
       case OFFSET.ITEMS.BUILDINGS + 0 : // Unlock Cursor
-        document.getElementById("product0").dataset.aphide = "";
+        [
+          () => document.getElementById("product0").dataset.aphide = "",
+          () => receiveUpgrade(Game.Upgrades["Thousand fingers"]),
+          () => receiveUpgrade(Game.Upgrades["Starter kit"])
+        ].slice(0,receivedCount).forEach(callback => callback());
         break;
-      case OFFSET.ITEMS.BUILDINGS + 1 : // Unlock Grandma
+      case OFFSET.ITEMS.BUILDINGS + 1 : // Unlock Grandma (just in case)
         document.getElementById("product1").dataset.aphide = "";
         break;
       case OFFSET.ITEMS.BUILDINGS + 2 : // Unlock Farm
@@ -1040,6 +1058,16 @@ async function appendFunctions() {
 
   apNotes = new APNotes();
 
+  // Override debug functions
+  Game.__APResendChecks = () => {
+    console.log("=== DEBUG: RESEND ALL CHECKS ===");
+    Object.values(Game.Achievements).forEach(achv => achv.won && sendCheckIdToAp(achv.id + OFFSET.ACHIEVEMENTS));
+  }
+
+  Game.__APGoalVerify = () => {
+    console.log("=== DEBUG: GOAL VERIFY ===");
+    alert(`You have completed ${loadAchieveNum()} achievements out of your ${goalAchievementCount} goal (${Math.floor(loadAchieveNum() / goalAchievementCount * 1000)/10}%).`);
+  }
 
   //lock all Stores
   document.getElementById("product0").dataset["aphide"] = "1";
@@ -1139,8 +1167,8 @@ async function appendFunctions() {
       };
     });
     Game.gainBuff('AP lumps', null, gameOptions.lump_multiplier);
-    const CCgainLumps = Game.gainLumps;
-    Game.gainLumps = total => CCgainLumps(total * gameOptions.lump_multiplier);
+    Game.CCgainLumps = Game.CCgainLumps || Game.gainLumps;
+    Game.gainLumps = total => Game.CCgainLumps(total * gameOptions.lump_multiplier);
   }
 
   if (gameOptions.production_multiplier && gameOptions.production_multiplier > 0) applyProductionMultiplier();
@@ -1304,7 +1332,14 @@ async function appendFunctions() {
   // Must stay after Game.Unlock override to prevent re-unlock happening during init
   Object.values(window.client.package.findPackage(gameName).itemTable)
     .forEach(apId => {
-      if (OFFSET.ITEMS.isUpgrade(apId) && !OFFSET.ITEMS.isProgressive(apId)) Game.UpgradesById[apId - OFFSET.ITEMS.UPGRADES - 1].unlocked = 0;
+      if (OFFSET.ITEMS.isUpgrade(apId) && !OFFSET.ITEMS.isProgressive(apId)) {
+        let up = Game.UpgradesById[apId - OFFSET.ITEMS.UPGRADES - 1];
+        up.unlocked = 0;
+        if (up.pool === "prestige") {
+          up.bought = 1;
+          up.basePrice = -1;
+        }
+      }
     });
   // Manually lock upgrades that are progressive (ie not in the pool). Ugly code but hopefully we don't add more
   [
@@ -1314,5 +1349,13 @@ async function appendFunctions() {
     "Heavenly confectionery",
     "Heavenly key"
   ].forEach(up => Game.Upgrades[up].unlocked = 0);
+  // Same for  Prestige upgrades linked to pool items, or used as progressive buildings but not in the item pool
+  let prestigeUps = ["How to bake your dragon", "Synergies Vol. I", "Synergies Vol. II"];
+  if (gameOptions.enable_progressive_buildings) prestigeUps.push("Starter kit");
+  prestigeUps.forEach(up => {
+        Game.Upgrades[up].unlocked = 0;
+        Game.Upgrades[up].bought = 1;
+        Game.Upgrades[up].basePrice = -1;
+      })
   Game.RebuildUpgrades();
 }
