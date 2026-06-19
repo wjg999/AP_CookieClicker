@@ -45,6 +45,7 @@ def set_rules(self: "CookieClicker"):
     for building in BUILDING_NAME:
         for location in locations['by_building'][BUILDING[building.name]]:
             cclocation = world.get_location(location.name, player)
+            self.set_rule(cclocation, HasAny(building.unlock_item(), building.progressive_item()))
             forbid_item(cclocation, building.unlock_item(), player)
             forbid_item(cclocation, building.progressive_item(), player)
 

@@ -33,3 +33,4 @@ def create_regions(world: "CookieClicker "):
             menu.connect(region, rule=RULES[sphere])
         else:
             previous.connect(region, rule=RULES[sphere])
+        multiworld.regions.append(region)
